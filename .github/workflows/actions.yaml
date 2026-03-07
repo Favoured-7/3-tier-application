@@ -17,9 +17,9 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
 
-    # Set up Docker Buildx
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v2
+    # # Set up Docker Buildx
+    # - name: Set up Docker Buildx
+    #   uses: docker/setup-buildx-action@v2
 
     # Log in to Docker Hub
     - name: Log in to Docker Hub
@@ -27,6 +27,12 @@ jobs:
       with:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
+
+    # Debugging step: List contents of frontend directory
+    - name: List contents of frontend directory
+      run: |
+        cd frontend
+        ls -alh
 
     # Build the frontend image
     - name: Build frontend Docker image
