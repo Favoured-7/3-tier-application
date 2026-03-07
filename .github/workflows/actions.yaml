@@ -1,4 +1,4 @@
-name: Deploy to DockerHub and VM
+name: Deploy Three-Tier App to DockerHub and VM
 
 on:
   push:
@@ -6,47 +6,55 @@ on:
       - main
 
 jobs:
-  deploymentjob:
+  deployment:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout repository
+      # Step 1: Checkout code
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      # Step 2: Build Docker image
-      - name: Build project
-        run: docker build -t ${{ secrets.DOCKER_USERNAME }}/3-tier-application .
-
-      # Step 3: Docker login to Docker Hub
+      # Step 2: Log in to DockerHub
       - name: Docker Login
         run: |
           echo ${{ secrets.DOCKER_PASSWORD }} | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
 
-      # Step 4: Push Docker image to Docker Hub
-      - name: Docker Push to Docker Hub
-        run: docker push ${{ secrets.DOCKER_USERNAME }}/3-tier-application
+      # Step 3: Build and push frontend image
+      - name: Build and push frontend image
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/frontend-image:latest ./frontend
+          docker push ${{ secrets.DOCKER_USERNAME }}/frontend-image:latest
 
-      # Step 5: Set up SSH connection to the VM
+      # Step 4: Build and push backend image
+      - name: Build and push backend image
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/backend-image:latest ./backend
+          docker push ${{ secrets.DOCKER_USERNAME }}/backend-image:latest
+
+      # Step 5: Set up SSH to VM
       - name: Set up SSH
         uses: webfactory/ssh-agent@v0.5.3
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-      - name: SSH into VM and deploy container
+      # Step 6: Deploy stack on VM using Docker Compose
+      - name: Deploy to VM
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
-            # Update the VM and install Docker if not already installed
-            sudo apt-get update -y
-            sudo apt-get install -y docker.io
+            # Install Docker if not present
+            if ! command -v docker &> /dev/null; then
+              echo "Installing Docker..."
+              sudo apt-get update -y
+              sudo apt-get install -y docker.io docker-compose
+            fi
 
-            # Pull the Docker image from Docker Hub
-            docker pull ${{ secrets.DOCKER_USERNAME }}/3-tier-application
+            # Pull the latest images from DockerHub
+            docker pull ${{ secrets.DOCKER_USERNAME }}/frontend-image:latest
+            docker pull ${{ secrets.DOCKER_USERNAME }}/backend-image:latest
 
-            # Stop and remove any old container if it's running
-            docker stop 3-tier-application || true
-            docker rm 3-tier-application || true
+            # Stop and remove any existing containers (safe reset)
+            docker-compose -f /home/${{ secrets.SSH_USER }}/docker-compose.yml down || true
 
-            # Run the new container
-            docker run -d --name 3-tier-application -p 80:80 ${{ secrets.DOCKER_USERNAME }}/3-tier-application
+            # Start the updated stack
+            docker-compose -f /home/${{ secrets.SSH_USER }}/docker-compose.yml up -d --build
           EOF
