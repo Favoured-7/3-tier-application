@@ -32,13 +32,13 @@ jobs:
     - name: Build frontend Docker image
       run: |
         cd frontend
-        docker build -t ${{ secrets.DOCKER_USERNAME }}/frontend-image:${{ github.sha }} .
+        docker buildx build -t ${{ secrets.DOCKER_USERNAME }}/frontend-image:${{ github.sha }} .
 
     # Build the backend image
     - name: Build backend Docker image
       run: |
         cd backend
-        docker build -t ${{ secrets.DOCKER_USERNAME }}/backend-image:${{ github.sha }} .
+        docker buildx build -t ${{ secrets.DOCKER_USERNAME }}/backend-image:${{ github.sha }} .
 
     # Push images to Docker Hub
     - name: Push frontend Docker image to Docker Hub
@@ -83,11 +83,3 @@ jobs:
           # docker logs frontend
           # docker logs backend
         EOF
-
-
-
-
-
-
-
-   
