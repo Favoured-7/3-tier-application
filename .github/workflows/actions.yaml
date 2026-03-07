@@ -1,24 +1,53 @@
-name: Deploy to DockerHub
+name: Deploy to DockerHub and VM
 
 on:
   push:
     branches:
-      - master
+      - main
 
 jobs:
   deploymentjob:
     runs-on: ubuntu-latest
+
     steps:
+      # Step 1: Checkout repository
       - name: Checkout repository
         uses: actions/checkout@v2
 
+      # Step 2: Build Docker image
       - name: Build project
         run: docker build -t ${{ secrets.DOCKER_USERNAME }}/3-tier-application .
 
+      # Step 3: Docker login to Docker Hub
       - name: Docker Login
         run: |
           echo ${{ secrets.DOCKER_PASSWORD }} | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
 
+      # Step 4: Push Docker image to Docker Hub
       - name: Docker Push to Docker Hub
         run: docker push ${{ secrets.DOCKER_USERNAME }}/3-tier-application
-        
+
+      # Step 5: Set up SSH connection to the VM
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.5.3
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      # Step 6: SSH into the VM and deploy the Docker container
+      - name: SSH into VM and deploy container
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+            # Update the VM and install Docker if not already installed
+            sudo apt-get update -y
+            sudo apt-get install -y docker.io
+
+            # Pull the Docker image from Docker Hub
+            docker pull ${{ secrets.DOCKER_USERNAME }}/3-tier-application
+
+            # Stop and remove any old container if it's running
+            docker stop 3-tier-application || true
+            docker rm 3-tier-application || true
+
+            # Run the new container
+            docker run -d --name 3-tier-application -p 80:80 ${{ secrets.DOCKER_USERNAME }}/3-tier-application
+          EOF
