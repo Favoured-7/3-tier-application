@@ -55,8 +55,8 @@ jobs:
             docker pull ${{ secrets.DOCKER_USERNAME }}/backend-image:latest
 
             # Stop and remove any existing containers (safe reset)
-            docker-compose -f /home/${{ secrets.SSH_USER }}/docker-compose.yml down || true
+            docker-compose -f /home/${{ secrets.SSH_USER }}/docker-compose.yaml down || true
 
             # Start the updated stack
-            docker-compose -f /home/${{ secrets.SSH_USER }}/docker-compose.yml up -d --build
+            docker-compose -f /home/${{ secrets.SSH_USER }}/docker-compose.yaml up -d --build
           EOF
