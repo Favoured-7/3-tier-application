@@ -415,3 +415,25 @@ The tables will only be lost if you remove the volume, for example:
 ```bash
 docker compose down -v
 ```
+### CI/CD Pipeline
+
+GitHub Actions pipeline automatically:
+1. Builds Docker images
+2. Pushes to Docker Hub
+3. SSHs into AWS EC2 and deploy containers
+
+## Docker Hub Images
+- 'favoured7/frontend-image:latest`
+- 'favoured7/backend-image:latest`
+
+## Deployment
+- **Cloud:** AWS EC2 (Ubuntu 22.04)
+- **Ports opened:** 22, 80, 3500, 3306
+
+Live Demo:
+http://13.61.141.166
+
+## Challenges and Solutions
+- Fixed CI/CD pipeline secrets configuration
+- Resolved environment variable issues for API URL
+- Fixed docker-compose filename mismatch
